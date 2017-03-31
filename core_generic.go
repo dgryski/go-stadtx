@@ -1,3 +1,5 @@
+// +build !amd64 noasm
+
 package stadtx
 
 import "encoding/binary"
