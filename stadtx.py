@@ -16,27 +16,42 @@ def imul(r,k):
     MOV(t, k)
     IMUL(r, t)
 
-v0 = Argument(uint64_t)
-v1 = Argument(uint64_t)
-v2 = Argument(uint64_t)
-v3 = Argument(uint64_t)
+state = Argument(ptr())
 key_base = Argument(ptr())
 key_len = Argument(int64_t)
 key_cap = Argument(int64_t)
 
-with Function("coreShort", (v0, v1, key_base, key_len, key_cap), uint64_t) as function:
+with Function("Hash", (state, key_base, key_len, key_cap), uint64_t) as function:
+
+    reg_state_ptr = GeneralPurposeRegister64()
+    LOAD.ARGUMENT(reg_state_ptr, state)
+
+    reg_ptr = GeneralPurposeRegister64()
+    reg_ptr_len = GeneralPurposeRegister64()
+    LOAD.ARGUMENT(reg_ptr, key_base)
+    LOAD.ARGUMENT(reg_ptr_len, key_len)
 
     reg_v0 = GeneralPurposeRegister64()
     reg_v1 = GeneralPurposeRegister64()
 
-    LOAD.ARGUMENT(reg_v0, v0)
-    LOAD.ARGUMENT(reg_v1, v1)
+    MOV(reg_v0, [reg_state_ptr])
+    MOV(reg_v1, [reg_state_ptr+8])
 
-    reg_ptr = GeneralPurposeRegister64()
-    reg_ptr_len = GeneralPurposeRegister64()
+    t = GeneralPurposeRegister64()
+    MOV(t, reg_ptr_len)
+    ADD(t, 1)
+    imul(t, k0U64)
+    XOR(reg_v0, t)
 
-    LOAD.ARGUMENT(reg_ptr, key_base)
-    LOAD.ARGUMENT(reg_ptr_len, key_len)
+    MOV(t, reg_ptr_len)
+    ADD(t, 2)
+    imul(t, k1U64)
+    XOR(reg_v1, t)
+
+    coreLong = Label("coreLong")
+
+    CMP(reg_ptr_len, 32)
+    JGE(coreLong)
 
     reg_u64s = GeneralPurposeRegister64()
     MOV(reg_u64s, reg_ptr_len)
@@ -157,26 +172,24 @@ with Function("coreShort", (v0, v1, key_base, key_len, key_cap), uint64_t) as fu
 
     RETURN(reg_v0)
 
+    LABEL(coreLong)
 
-with Function("coreLong", (v0, v1, v2, v3, key_base, key_len, key_cap), uint64_t) as function:
-
-    reg_v0 = GeneralPurposeRegister64()
-    reg_v1 = GeneralPurposeRegister64()
     reg_v2 = GeneralPurposeRegister64()
     reg_v3 = GeneralPurposeRegister64()
 
-    LOAD.ARGUMENT(reg_v0, v0)
-    LOAD.ARGUMENT(reg_v1, v1)
-    LOAD.ARGUMENT(reg_v2, v2)
-    LOAD.ARGUMENT(reg_v3, v3)
+    MOV(reg_v2, [reg_state_ptr+16])
+    MOV(reg_v3, [reg_state_ptr+24])
 
-    reg_ptr = GeneralPurposeRegister64()
-    reg_ptr_len = GeneralPurposeRegister64()
+    t = GeneralPurposeRegister64()
+    MOV(t, reg_ptr_len)
+    ADD(t, 3)
+    imul(t, k2U64)
+    XOR(reg_v2, t)
 
-    LOAD.ARGUMENT(reg_ptr, key_base)
-    LOAD.ARGUMENT(reg_ptr_len, key_len)
-
-    # we know len is >= 32 at this point
+    MOV(t, reg_ptr_len)
+    ADD(t, 4)
+    imul(t, k3U64)
+    XOR(reg_v3, t)
 
     r = GeneralPurposeRegister64()
     with Loop() as loop:
