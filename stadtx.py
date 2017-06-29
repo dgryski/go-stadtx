@@ -16,6 +16,19 @@ def imul(r,k):
     MOV(t, k)
     IMUL(r, t)
 
+def split(labels,v,l,h):
+    if l == h:
+        JMP(labels[l])
+        return
+
+    m = int((l+h)/2)
+    after = Label()
+    CMP(v, m)
+    JG(after)
+    split(labels,v, l,m)
+    LABEL(after)
+    split(labels,v,m+1,h)
+
 state = Argument(ptr())
 key_base = Argument(ptr())
 key_len = Argument(int64_t)
@@ -80,9 +93,7 @@ with Function("Hash", (state, key_base, key_len, key_cap), uint64_t) as function
 
     labels = [Label("shortTail%d" % i) for i in range(8)]
 
-    for i in range(7):
-        CMP(reg_ptr_len, i)
-        JE(labels[i])
+    split(labels, reg_ptr_len,0,7)
 
     after = Label("shortAfter")
 
@@ -278,9 +289,7 @@ with Function("Hash", (state, key_base, key_len, key_cap), uint64_t) as function
 
     labels = [Label("longTail%d" % i) for i in range(8)]
 
-    for i in range(8):
-        CMP(reg_ptr_len, i)
-        JE(labels[i])
+    split(labels, reg_ptr_len, 0, 7)
 
     after = Label("longAfter")
 
